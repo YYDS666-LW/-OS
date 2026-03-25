@@ -1,0 +1,139 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: /novels/{novelId}
+// Document ID: novelId
+// Fields:
+//   - title: string (required, < 100 chars)
+//   - description: string (optional, < 1000 chars)
+//   - coverImage: string (optional, < 100000 chars)
+//   - outline: string (optional, < 50000 chars)
+//   - styleGuide: string (optional, < 10000 chars)
+//   - background: string (optional, < 50000 chars)
+//   - characters: string (optional, < 50000 chars)
+//   - plotlines: string (optional, < 50000 chars)
+//   - items: string (optional, < 50000 chars)
+//   - targetPlatform: string (optional, < 200 chars)
+//   - platformAnalysis: string (optional, < 50000 chars)
+//   - authorId: string (required, matches auth.uid)
+//   - createdAt: timestamp (required)
+//
+// Collection: /novels/{novelId}/chapters/{chapterId}
+// Document ID: chapterId
+// Fields:
+//   - novelId: string (required, matches parent novelId)
+//   - chapterNumber: integer (required, > 0)
+//   - title: string (optional, < 100 chars)
+//   - content: string (optional, < 20000 chars)
+//   - status: string (required, enum: ['draft', 'auditing', 'revised', 'final'])
+//   - auditFeedback: string (optional, < 5000 chars)
+//   - createdAt: timestamp (required)
+//
+// Collection: /users/{uid}
+// Document ID: uid
+// Fields:
+//   - uid: string (required, matches auth.uid)
+//   - email: string (required, format: email)
+//   - displayName: string (optional, < 100 chars)
+//   - language: string (optional, enum: ['zh', 'en'])
+//   - globalRules: string (optional, < 10000 chars)
+//   - aiConfigs: string (optional, < 50000 chars)
+//   - tokenUsage: string (optional, < 10000 chars)
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isNovelOwner(novelId) {
+      return isAuthenticated() && get(/databases/$(database)/documents/novels/$(novelId)).data.authorId == request.auth.uid;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidNovel(data) {
+      return data.keys().hasAll(['title', 'authorId', 'createdAt']) &&
+             data.keys().hasOnly(['title', 'description', 'coverImage', 'outline', 'styleGuide', 'background', 'characters', 'plotlines', 'items', 'targetPlatform', 'platformAnalysis', 'authorId', 'createdAt']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 2000)) &&
+             (!('coverImage' in data) || (data.coverImage is string && data.coverImage.size() <= 1000000)) &&
+             (!('outline' in data) || (data.outline is string && data.outline.size() <= 100000)) &&
+             (!('styleGuide' in data) || (data.styleGuide is string && data.styleGuide.size() <= 50000)) &&
+             (!('background' in data) || (data.background is string && data.background.size() <= 100000)) &&
+             (!('characters' in data) || (data.characters is string && data.characters.size() <= 100000)) &&
+             (!('plotlines' in data) || (data.plotlines is string && data.plotlines.size() <= 100000)) &&
+             (!('items' in data) || (data.items is string && data.items.size() <= 100000)) &&
+             (!('targetPlatform' in data) || (data.targetPlatform is string && data.targetPlatform.size() <= 500)) &&
+             (!('platformAnalysis' in data) || (data.platformAnalysis is string && data.platformAnalysis.size() <= 100000)) &&
+             data.authorId == request.auth.uid &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidChapter(data) {
+      return data.keys().hasAll(['novelId', 'chapterNumber', 'status', 'createdAt']) &&
+             data.keys().hasOnly(['novelId', 'chapterNumber', 'title', 'content', 'status', 'auditFeedback', 'createdAt']) &&
+             data.novelId is string &&
+             data.chapterNumber is int && data.chapterNumber > 0 &&
+             (!('title' in data) || (data.title is string && data.title.size() <= 200)) &&
+             (!('content' in data) || (data.content is string && data.content.size() <= 100000)) &&
+             data.status in ['draft', 'auditing', 'revised', 'final'] &&
+             (!('auditFeedback' in data) || (data.auditFeedback is string && data.auditFeedback.size() <= 50000)) &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email']) &&
+             data.keys().hasOnly(['uid', 'email', 'displayName', 'language', 'globalRules', 'aiConfigs', 'tokenUsage']) &&
+             data.uid == request.auth.uid &&
+             isValidEmail(data.email) &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() < 100)) &&
+             (!('language' in data) || (data.language in ['zh', 'en'])) &&
+             (!('globalRules' in data) || (data.globalRules is string && data.globalRules.size() < 10000)) &&
+             (!('aiConfigs' in data) || (data.aiConfigs is string && data.aiConfigs.size() <= 100000)) &&
+             (!('tokenUsage' in data) || (data.tokenUsage is string && data.tokenUsage.size() <= 20000));
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && isValidUser(request.resource.data);
+    }
+
+    match /novels/{novelId} {
+      allow read: if isOwner(resource.data.authorId);
+      allow create: if isAuthenticated() && isValidNovel(request.resource.data);
+      allow update: if isOwner(resource.data.authorId) && isValidNovel(request.resource.data);
+      allow delete: if isOwner(resource.data.authorId);
+
+      match /chapters/{chapterId} {
+        allow read: if isNovelOwner(novelId);
+        allow create: if isNovelOwner(novelId) && isValidChapter(request.resource.data);
+        allow update: if isNovelOwner(novelId) && isValidChapter(request.resource.data);
+        allow delete: if isNovelOwner(novelId);
+      }
+    }
+  }
+}

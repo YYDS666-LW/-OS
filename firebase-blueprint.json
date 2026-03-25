@@ -1,0 +1,69 @@
+{
+  "entities": {
+    "Novel": {
+      "title": "Novel",
+      "description": "Represents a novel project.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "The title of the novel." },
+        "description": { "type": "string", "description": "A brief summary of the novel." },
+        "coverImage": { "type": "string", "description": "URL of the novel's cover image." },
+        "outline": { "type": "string", "description": "The overall plot outline." },
+        "styleGuide": { "type": "string", "description": "Instructions for the AI on writing style." },
+        "background": { "type": "string", "description": "Markdown content for the novel's background/world-building." },
+        "characters": { "type": "string", "description": "Markdown content for the novel's characters." },
+        "plotlines": { "type": "string", "description": "Markdown content for the novel's plotlines/mission arcs." },
+        "items": { "type": "string", "description": "Markdown content for the novel's items/artifacts." },
+        "targetPlatform": { "type": "string", "description": "The platform where the novel is planned to be published." },
+        "platformAnalysis": { "type": "string", "description": "AI-generated analysis of the target platform and trending books." },
+        "authorId": { "type": "string", "description": "The UID of the author." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the novel was created." }
+      },
+      "required": ["title", "authorId", "createdAt"]
+    },
+    "Chapter": {
+      "title": "Chapter",
+      "description": "A single chapter within a novel.",
+      "type": "object",
+      "properties": {
+        "novelId": { "type": "string", "description": "The ID of the parent novel." },
+        "chapterNumber": { "type": "integer", "description": "The order of the chapter." },
+        "title": { "type": "string", "description": "The title of the chapter." },
+        "content": { "type": "string", "description": "The text content of the chapter." },
+        "status": { "type": "string", "enum": ["draft", "auditing", "revised", "final"], "description": "The current state of the chapter." },
+        "auditFeedback": { "type": "string", "description": "AI-generated feedback for revision." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the chapter was created." }
+      },
+      "required": ["novelId", "chapterNumber", "status", "createdAt"]
+    },
+    "User": {
+      "title": "User",
+      "description": "User profile information.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique Firebase Auth ID." },
+        "email": { "type": "string", "format": "email", "description": "The user's email address." },
+        "displayName": { "type": "string", "description": "The user's display name." },
+        "language": { "type": "string", "enum": ["zh", "en"], "description": "The user's preferred language." },
+        "globalRules": { "type": "string", "description": "Global writing rules/inspiration for the user's AI assistant." },
+        "aiConfigs": { "type": "string", "description": "JSON stringified array of AI configurations." },
+        "tokenUsage": { "type": "string", "description": "JSON stringified object tracking token consumption." }
+      },
+      "required": ["uid", "email"]
+    }
+  },
+  "firestore": {
+    "/novels/{novelId}": {
+      "schema": "Novel",
+      "description": "Collection of novel projects."
+    },
+    "/novels/{novelId}/chapters/{chapterId}": {
+      "schema": "Chapter",
+      "description": "Sub-collection of chapters for a specific novel."
+    },
+    "/users/{uid}": {
+      "schema": "User",
+      "description": "User profile data."
+    }
+  }
+}

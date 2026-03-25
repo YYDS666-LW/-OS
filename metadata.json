@@ -1,0 +1,5 @@
+{
+  "name": "小说创作者OS",
+  "description": "一个受 Inkos 启发的 Web 版自主小说写作助手。AI 代理帮助您编写、审核和修改故事，并设有由人类参与的审查环节。",
+  "requestFramePermissions": []
+}
