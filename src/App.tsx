@@ -50,10 +50,12 @@ import {
   Search,
   FileSearch,
   Sparkles,
-  Upload
+  Upload,
+  Eye
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
+import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import { db, auth } from './firebase';
 import { Novel, Chapter, UserProfile } from './types';
 import { 
@@ -175,7 +177,7 @@ const translations = {
     revise: "修改",
     finalize: "定稿",
     auditFeedback: "AI 审核反馈",
-    regenerateFromReview: "根据审核重新生成章节",
+    regenerateFromReview: "重新生成",
     noChapterSelected: "未选择章节",
     selectChapterDesc: "从侧边栏选择一个章节或创建一个新章节开始写作。",
     createChapter: "创建章节",
@@ -471,6 +473,7 @@ export default function App() {
   const [coverInstruction, setCoverInstruction] = useState('');
   const [showPlatformInput, setShowPlatformInput] = useState(false);
   const [platformInstruction, setPlatformInstruction] = useState('');
+  const [showChapterPreview, setShowChapterPreview] = useState(false);
   const [settingsTab, setSettingsTab] = useState<'general' | 'ai' | 'tokens'>('general');
   const [optimizingField, setOptimizingField] = useState<string | null>(null);
   const [analyzingPlatform, setAnalyzingPlatform] = useState(false);
@@ -1009,7 +1012,7 @@ export default function App() {
                 </button>
                 <div>
                   <h2 className="text-xl font-bold">{selectedNovel.title}</h2>
-                  <div className="flex items-center gap-4 mt-1 overflow-x-auto no-scrollbar pb-1">
+                  <div className="flex items-center gap-3 mt-2 overflow-x-auto no-scrollbar pb-2">
                     {[
                       { id: 'chapters', label: t.chapters, icon: FileText },
                       { id: 'platform', label: t.targetPlatform, icon: Globe },
@@ -1023,11 +1026,13 @@ export default function App() {
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
                         className={cn(
-                          "flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest transition-colors whitespace-nowrap",
-                          activeTab === tab.id ? "text-zinc-900" : "text-zinc-400 hover:text-zinc-600"
+                          "flex items-center gap-2 px-5 py-2.5 rounded-2xl text-base font-semibold transition-all whitespace-nowrap backdrop-blur-xl border",
+                          activeTab === tab.id 
+                            ? "bg-white/90 border-white/50 text-zinc-900 shadow-lg shadow-black/5" 
+                            : "bg-white/40 border-white/20 text-zinc-600 hover:bg-white/60 hover:text-zinc-900 hover:shadow-md"
                         )}
                       >
-                        <tab.icon className="w-3 h-3" />
+                        <tab.icon className="w-5 h-5" />
                         {tab.label}
                       </button>
                     ))}
@@ -1042,43 +1047,50 @@ export default function App() {
             </div>
 
             {activeTab === 'chapters' && (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <PanelGroup orientation="horizontal" className="min-h-[800px] items-stretch">
                 {/* Chapters Sidebar */}
-                <div className="lg:col-span-3 space-y-4">
-                  <div className="flex items-center justify-between px-2">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">{t.chapters}</span>
-                    <button onClick={createChapter} className="p-1 hover:bg-zinc-200 rounded transition-colors">
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="space-y-1">
-                    {chapters.map((chapter) => (
-                      <button
-                        key={chapter.id}
-                        onClick={() => setSelectedChapter(chapter)}
-                        className={cn(
-                          "w-full text-left px-3 py-2 rounded-lg text-sm transition-all flex items-center justify-between group",
-                          selectedChapter?.id === chapter.id ? "bg-zinc-900 text-white" : "hover:bg-zinc-100 text-zinc-600"
-                        )}
-                      >
-                        <span className="truncate">{chapter.title || `Chapter ${chapter.chapterNumber}`}</span>
-                        {chapter.status === 'final' && <CheckCircle2 className="w-3 h-3 text-emerald-500" />}
+                <Panel defaultSize={20} minSize={5} className="pr-4 flex flex-col">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between px-2 gap-2 min-w-0">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 truncate">{t.chapters}</span>
+                      <button onClick={createChapter} className="p-1 hover:bg-zinc-200 rounded transition-colors flex-shrink-0">
+                        <Plus className="w-4 h-4" />
                       </button>
-                    ))}
+                    </div>
+                    <div className="space-y-1">
+                      {chapters.map((chapter) => (
+                        <button
+                          key={chapter.id}
+                          onClick={() => setSelectedChapter(chapter)}
+                          className={cn(
+                            "w-full text-left px-3 py-2 rounded-lg text-sm transition-all flex items-center justify-between group gap-2 min-w-0",
+                            selectedChapter?.id === chapter.id ? "bg-zinc-900 text-white" : "hover:bg-zinc-100 text-zinc-600"
+                          )}
+                        >
+                          <span className="truncate flex-1">{chapter.title || `Chapter ${chapter.chapterNumber}`}</span>
+                          {chapter.status === 'final' && <CheckCircle2 className="w-3 h-3 text-emerald-500 flex-shrink-0" />}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                </Panel>
+
+                <PanelResizeHandle className="w-2 bg-zinc-200/80 hover:bg-zinc-400 active:bg-zinc-500 cursor-col-resize rounded-full transition-colors mx-2 flex items-center justify-center group">
+                  <div className="w-1 h-8 bg-zinc-400/50 rounded-full group-hover:bg-white transition-colors" />
+                </PanelResizeHandle>
 
                 {/* Chapter Editor */}
-                <div className="lg:col-span-9">
+                <Panel minSize={10} className="flex flex-col pl-2">
                   {selectedChapter ? (
-                    <div className="space-y-6">
-                      <Card className="p-0">
-                        <div className="border-b border-zinc-100 p-4 flex items-center justify-between bg-zinc-50/50">
-                            <div className="flex items-center gap-4 flex-1">
+                    <PanelGroup orientation="horizontal" className="items-stretch">
+                      <Panel minSize={10} className="flex flex-col pr-2">
+                        <Card className="p-0 w-full flex-1 flex flex-col h-full">
+                          <div className="border-b border-zinc-100 p-4 flex flex-wrap items-center justify-between bg-zinc-50/50 gap-4 min-w-0">
+                            <div className="flex items-center gap-4 flex-1 min-w-0">
                               <input 
                                 value={selectedChapter.title || ''} 
                                 onChange={(e) => updateChapter({ title: e.target.value })}
-                                className="bg-transparent font-bold text-lg focus:outline-none w-full"
+                                className="bg-transparent font-bold text-lg focus:outline-none w-full min-w-0"
                                 placeholder={t.novelTitle}
                               />
                               <div className="flex items-center gap-1">
@@ -1121,8 +1133,8 @@ export default function App() {
                                 {t[selectedChapter.status as keyof typeof translations.zh]}
                               </div>
                             </div>
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-1">
                               <Button 
                                 variant="ghost" 
                                 onClick={() => setShowWriteInput(!showWriteInput)} 
@@ -1226,48 +1238,70 @@ export default function App() {
                             </Button>
                           </div>
                         </div>
-                        <div className="p-8">
-                          <textarea
-                            value={selectedChapter.content || ''}
-                            onChange={(e) => updateChapter({ content: e.target.value })}
-                            placeholder="..."
-                            className="w-full min-h-[600px] focus:outline-none resize-none text-lg leading-relaxed font-serif"
-                          />
+                        <div className="p-8 flex-1 flex flex-col">
+                          {showChapterPreview ? (
+                            <div className="w-full flex-1 overflow-y-auto prose prose-zinc prose-lg max-w-none font-serif">
+                              <ReactMarkdown>{selectedChapter.content || ''}</ReactMarkdown>
+                            </div>
+                          ) : (
+                            <textarea
+                              value={selectedChapter.content || ''}
+                              onChange={(e) => updateChapter({ content: e.target.value })}
+                              placeholder="..."
+                              className="w-full flex-1 focus:outline-none resize-none text-lg leading-relaxed font-serif"
+                            />
+                          )}
                           <div className="mt-4 pt-4 border-t border-zinc-100 flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-zinc-400">
                             <span>{t.wordCount}</span>
                             <span className="text-zinc-900">{(selectedChapter.content || '').length}</span>
                           </div>
                         </div>
                       </Card>
+                      </Panel>
 
                       {selectedChapter.auditFeedback && (
-                        <Card className="bg-amber-50/30 border-amber-100 p-6">
-                          <div className="flex items-center gap-2 mb-4 text-amber-700">
-                            <AlertCircle className="w-4 h-4" />
-                            <span className="text-xs font-bold uppercase tracking-widest">{t.auditFeedback}</span>
-                          </div>
-                          <div className="space-y-4">
-                            <textarea
-                              value={selectedChapter.auditFeedback || ''}
-                              onChange={(e) => updateChapter({ auditFeedback: e.target.value })}
-                              className="w-full min-h-[150px] p-4 bg-white/50 border border-amber-200 rounded-xl text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all"
-                              placeholder={t.auditFeedback}
-                            />
-                            <div className="flex justify-end">
-                              <Button 
-                                variant="outline" 
-                                onClick={handleAiRevise}
-                                disabled={aiActionLoading || !selectedChapter.auditFeedback}
-                                className="bg-white border-amber-200 text-amber-700 hover:bg-amber-50"
-                              >
-                                {aiActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                                {t.regenerateFromReview}
-                              </Button>
-                            </div>
-                          </div>
-                        </Card>
+                        <>
+                          <PanelResizeHandle className="w-2 bg-zinc-200/80 hover:bg-zinc-400 active:bg-zinc-500 cursor-col-resize rounded-full transition-colors mx-2 flex items-center justify-center group">
+                            <div className="w-1 h-8 bg-zinc-400/50 rounded-full group-hover:bg-white transition-colors" />
+                          </PanelResizeHandle>
+                          <Panel defaultSize={30} minSize={5} className="flex flex-col pl-2">
+                            <Card className="bg-amber-50/30 border-amber-100 p-6 w-full h-full flex flex-col min-w-0">
+                              <div className="flex items-center gap-2 mb-4 text-amber-700 min-w-0">
+                                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                                <span className="text-xs font-bold uppercase tracking-widest truncate">{t.auditFeedback}</span>
+                              </div>
+                              <div className="space-y-4 flex-1 flex flex-col min-w-0">
+                                <textarea
+                                  value={selectedChapter.auditFeedback || ''}
+                                  onChange={(e) => updateChapter({ auditFeedback: e.target.value })}
+                                  className="w-full flex-1 p-4 bg-white/50 border border-amber-200 rounded-xl text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all resize-none min-w-0"
+                                  placeholder={t.auditFeedback}
+                                />
+                                <div className="flex flex-col gap-2 min-w-0">
+                                  <Button 
+                                    variant="outline" 
+                                    onClick={() => handleAiRevise()}
+                                    disabled={aiActionLoading || !selectedChapter.auditFeedback}
+                                    className="bg-white border-amber-200 text-amber-700 hover:bg-amber-50 w-full flex items-center justify-center gap-2 min-w-0"
+                                  >
+                                    {aiActionLoading ? <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" /> : <RefreshCw className="w-4 h-4 flex-shrink-0" />}
+                                    <span className="truncate">{t.regenerateFromReview}</span>
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    onClick={() => setShowChapterPreview(!showChapterPreview)}
+                                    className="bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50 w-full flex items-center justify-center gap-2 min-w-0"
+                                  >
+                                    {showChapterPreview ? <FileText className="w-4 h-4 flex-shrink-0" /> : <Eye className="w-4 h-4 flex-shrink-0" />}
+                                    <span className="truncate">{showChapterPreview ? t.edit : t.preview}</span>
+                                  </Button>
+                                </div>
+                              </div>
+                            </Card>
+                          </Panel>
+                        </>
                       )}
-                    </div>
+                    </PanelGroup>
                   ) : (
                     <div className="h-[600px] flex flex-col items-center justify-center text-center border-2 border-dashed border-zinc-200 rounded-2xl">
                       <div className="p-4 bg-zinc-100 rounded-2xl mb-4">
@@ -1282,8 +1316,8 @@ export default function App() {
                       </Button>
                     </div>
                   )}
-                </div>
-              </div>
+                </Panel>
+              </PanelGroup>
             )}
             {activeTab === 'platform' && (
               <Card className="p-8 space-y-8">
