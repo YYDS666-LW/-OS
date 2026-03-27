@@ -1049,29 +1049,27 @@ export default function App() {
             {activeTab === 'chapters' && (
               <PanelGroup orientation="horizontal" className="min-h-[800px] items-stretch">
                 {/* Chapters Sidebar */}
-                <Panel defaultSize={20} minSize={5} className="pr-4 flex flex-col">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between px-2 gap-2 min-w-0">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 truncate">{t.chapters}</span>
-                      <button onClick={createChapter} className="p-1 hover:bg-zinc-200 rounded transition-colors flex-shrink-0">
-                        <Plus className="w-4 h-4" />
+                <Panel defaultSize={20} minSize={1} className="pr-4 flex flex-col min-h-0">
+                  <div className="flex items-center justify-between px-2 gap-2 min-w-0 flex-shrink-0 mb-4">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 truncate">{t.chapters}</span>
+                    <button onClick={createChapter} className="p-1 hover:bg-zinc-200 rounded transition-colors flex-shrink-0">
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="space-y-1 overflow-y-auto flex-1 min-h-0 pr-2 pb-4">
+                    {chapters.map((chapter) => (
+                      <button
+                        key={chapter.id}
+                        onClick={() => setSelectedChapter(chapter)}
+                        className={cn(
+                          "w-full text-left px-3 py-2 rounded-lg text-sm transition-all flex items-center justify-between group gap-2 min-w-0",
+                          selectedChapter?.id === chapter.id ? "bg-zinc-900 text-white" : "hover:bg-zinc-100 text-zinc-600"
+                        )}
+                      >
+                        <span className="truncate flex-1">{chapter.title || `Chapter ${chapter.chapterNumber}`}</span>
+                        {chapter.status === 'final' && <CheckCircle2 className="w-3 h-3 text-emerald-500 flex-shrink-0" />}
                       </button>
-                    </div>
-                    <div className="space-y-1">
-                      {chapters.map((chapter) => (
-                        <button
-                          key={chapter.id}
-                          onClick={() => setSelectedChapter(chapter)}
-                          className={cn(
-                            "w-full text-left px-3 py-2 rounded-lg text-sm transition-all flex items-center justify-between group gap-2 min-w-0",
-                            selectedChapter?.id === chapter.id ? "bg-zinc-900 text-white" : "hover:bg-zinc-100 text-zinc-600"
-                          )}
-                        >
-                          <span className="truncate flex-1">{chapter.title || `Chapter ${chapter.chapterNumber}`}</span>
-                          {chapter.status === 'final' && <CheckCircle2 className="w-3 h-3 text-emerald-500 flex-shrink-0" />}
-                        </button>
-                      ))}
-                    </div>
+                    ))}
                   </div>
                 </Panel>
 
@@ -1080,12 +1078,12 @@ export default function App() {
                 </PanelResizeHandle>
 
                 {/* Chapter Editor */}
-                <Panel minSize={10} className="flex flex-col pl-2">
+                <Panel minSize={1} className="flex flex-col pl-2 min-h-0">
                   {selectedChapter ? (
                     <PanelGroup orientation="horizontal" className="items-stretch">
-                      <Panel minSize={10} className="flex flex-col pr-2">
-                        <Card className="p-0 w-full flex-1 flex flex-col h-full">
-                          <div className="border-b border-zinc-100 p-4 flex flex-wrap items-center justify-between bg-zinc-50/50 gap-4 min-w-0">
+                      <Panel minSize={1} className="flex flex-col pr-2 min-h-0">
+                        <Card className="p-0 w-full flex-1 flex flex-col h-full min-h-0">
+                          <div className="border-b border-zinc-100 p-4 flex flex-wrap items-center justify-between bg-zinc-50/50 gap-4 min-w-0 flex-shrink-0">
                             <div className="flex items-center gap-4 flex-1 min-w-0">
                               <input 
                                 value={selectedChapter.title || ''} 
@@ -1238,9 +1236,9 @@ export default function App() {
                             </Button>
                           </div>
                         </div>
-                        <div className="p-8 flex-1 flex flex-col">
+                        <div className="p-8 flex-1 flex flex-col min-h-0">
                           {showChapterPreview ? (
-                            <div className="w-full flex-1 overflow-y-auto prose prose-zinc prose-lg max-w-none font-serif">
+                            <div className="w-full flex-1 overflow-y-auto prose prose-zinc prose-lg max-w-none font-serif min-h-0">
                               <ReactMarkdown>{selectedChapter.content || ''}</ReactMarkdown>
                             </div>
                           ) : (
@@ -1248,10 +1246,10 @@ export default function App() {
                               value={selectedChapter.content || ''}
                               onChange={(e) => updateChapter({ content: e.target.value })}
                               placeholder="..."
-                              className="w-full flex-1 focus:outline-none resize-none text-lg leading-relaxed font-serif"
+                              className="w-full flex-1 focus:outline-none resize-none text-lg leading-relaxed font-serif min-h-0"
                             />
                           )}
-                          <div className="mt-4 pt-4 border-t border-zinc-100 flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                          <div className="mt-4 pt-4 border-t border-zinc-100 flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-zinc-400 flex-shrink-0">
                             <span>{t.wordCount}</span>
                             <span className="text-zinc-900">{(selectedChapter.content || '').length}</span>
                           </div>
@@ -1264,20 +1262,20 @@ export default function App() {
                           <PanelResizeHandle className="w-2 bg-zinc-200/80 hover:bg-zinc-400 active:bg-zinc-500 cursor-col-resize rounded-full transition-colors mx-2 flex items-center justify-center group">
                             <div className="w-1 h-8 bg-zinc-400/50 rounded-full group-hover:bg-white transition-colors" />
                           </PanelResizeHandle>
-                          <Panel defaultSize={30} minSize={5} className="flex flex-col pl-2">
-                            <Card className="bg-amber-50/30 border-amber-100 p-6 w-full h-full flex flex-col min-w-0">
-                              <div className="flex items-center gap-2 mb-4 text-amber-700 min-w-0">
+                          <Panel defaultSize={30} minSize={1} className="flex flex-col pl-2 min-h-0">
+                            <Card className="bg-amber-50/30 border-amber-100 p-6 w-full h-full flex flex-col min-w-0 min-h-0">
+                              <div className="flex items-center gap-2 mb-4 text-amber-700 min-w-0 flex-shrink-0">
                                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                                 <span className="text-xs font-bold uppercase tracking-widest truncate">{t.auditFeedback}</span>
                               </div>
-                              <div className="space-y-4 flex-1 flex flex-col min-w-0">
+                              <div className="space-y-4 flex-1 flex flex-col min-w-0 min-h-0">
                                 <textarea
                                   value={selectedChapter.auditFeedback || ''}
                                   onChange={(e) => updateChapter({ auditFeedback: e.target.value })}
-                                  className="w-full flex-1 p-4 bg-white/50 border border-amber-200 rounded-xl text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all resize-none min-w-0"
+                                  className="w-full flex-1 p-4 bg-white/50 border border-amber-200 rounded-xl text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all resize-none min-w-0 min-h-0"
                                   placeholder={t.auditFeedback}
                                 />
-                                <div className="flex flex-col gap-2 min-w-0">
+                                <div className="flex flex-col gap-2 min-w-0 flex-shrink-0">
                                   <Button 
                                     variant="outline" 
                                     onClick={() => handleAiRevise()}
