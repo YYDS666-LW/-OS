@@ -30,6 +30,8 @@ export interface Novel {
   items?: string;
   targetPlatform?: string;
   platformAnalysis?: string;
+  authorStyleName?: string;
+  authorStylePrompt?: string;
   authorId: string;
   createdAt: Timestamp;
 }

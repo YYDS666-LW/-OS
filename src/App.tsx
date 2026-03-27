@@ -51,7 +51,8 @@ import {
   FileSearch,
   Sparkles,
   Upload,
-  Eye
+  Eye,
+  PenTool
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
@@ -63,6 +64,7 @@ import {
   auditChapter, 
   reviseChapter, 
   analyzePlatform, 
+  analyzeAuthorStyle,
   generateChapterTitle, 
   optimizeContent, 
   generateCoverImage 
@@ -135,6 +137,8 @@ const translations = {
     targetPlatform: "Target Platform",
     analyze: "Analyze",
     platformAnalysis: "Platform Analysis",
+    authorStyle: "Author Style Mimicry",
+    analyzeStyle: "Analyze Style",
     autoGenerate: "Auto-generate",
     titleStyle: "Title Style",
     optimize: "Optimize",
@@ -211,6 +215,8 @@ const translations = {
     targetPlatform: "计划上线平台",
     analyze: "分析平台",
     platformAnalysis: "平台分析报告",
+    authorStyle: "文风模仿",
+    analyzeStyle: "分析文风",
     autoGenerate: "自动生成",
     titleStyle: "标题风格",
     optimize: "优化",
@@ -459,7 +465,7 @@ export default function App() {
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
   const [loading, setLoading] = useState(true);
   const [aiActionLoading, setAiActionLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'chapters' | 'platform' | 'outline' | 'background' | 'characters' | 'plotlines' | 'items'>('chapters');
+  const [activeTab, setActiveTab] = useState<'chapters' | 'platform' | 'authorStyle' | 'outline' | 'background' | 'characters' | 'plotlines' | 'items'>('chapters');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showAuditInput, setShowAuditInput] = useState(false);
   const [auditInstruction, setAuditInstruction] = useState('');
@@ -477,6 +483,10 @@ export default function App() {
   const [settingsTab, setSettingsTab] = useState<'general' | 'ai' | 'tokens'>('general');
   const [optimizingField, setOptimizingField] = useState<string | null>(null);
   const [analyzingPlatform, setAnalyzingPlatform] = useState(false);
+  const [analyzingStyle, setAnalyzingStyle] = useState(false);
+  const [styleInstruction, setStyleInstruction] = useState('');
+  const [showStyleInput, setShowStyleInput] = useState(false);
+  const [isEditingStylePrompt, setIsEditingStylePrompt] = useState(false);
   const [generatingCover, setGeneratingCover] = useState(false);
   const [generatingTitle, setGeneratingTitle] = useState(false);
 
@@ -768,6 +778,32 @@ export default function App() {
     }
   };
 
+  const handleAnalyzeStyle = async (instruction?: string) => {
+    if (!selectedNovel || !selectedNovel.authorStyleName) return;
+    setAnalyzingStyle(true);
+    try {
+      const { analysis, tokenUsageJson } = await analyzeAuthorStyle(selectedNovel.authorStyleName, userProfile || undefined, instruction);
+      
+      // Parse the JSON to get the master_clone_prompt
+      let prompt = analysis;
+      try {
+        const parsed = JSON.parse(analysis.replace(/```json\n|\n```/g, ''));
+        if (parsed.master_clone_prompt) {
+          prompt = parsed.master_clone_prompt;
+        }
+      } catch (e) {
+        console.warn("Failed to parse author style JSON", e);
+      }
+      
+      await updateNovel({ authorStylePrompt: prompt });
+      if (tokenUsageJson) await updateProfile({ tokenUsage: tokenUsageJson });
+    } catch (error) {
+      console.error('Author style analysis failed', error);
+    } finally {
+      setAnalyzingStyle(false);
+    }
+  };
+
   const handleOptimizeContent = async (field: keyof Novel, type: string, instruction?: string) => {
     if (!selectedNovel) return;
     const currentVal = selectedNovel[field] as string || '';
@@ -1016,6 +1052,7 @@ export default function App() {
                     {[
                       { id: 'chapters', label: t.chapters, icon: FileText },
                       { id: 'platform', label: t.targetPlatform, icon: Globe },
+                      { id: 'authorStyle', label: t.authorStyle, icon: PenTool },
                       { id: 'outline', label: t.outline, icon: GitBranch },
                       { id: 'background', label: t.background, icon: Map },
                       { id: 'characters', label: t.characters, icon: Users },
@@ -1383,7 +1420,105 @@ export default function App() {
               </Card>
             )}
 
-            {activeTab !== 'chapters' && activeTab !== 'platform' && (
+            {activeTab === 'authorStyle' && (
+              <Card className="p-8 space-y-8">
+                <div className="max-w-4xl mx-auto space-y-8">
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-bold flex items-center gap-2">
+                      <PenTool className="w-5 h-5" /> {t.authorStyle}
+                    </h3>
+                    <p className="text-sm text-zinc-500">
+                      {t.language === 'zh' ? '输入作者名字，AI将分析其过往作品，提炼写作风格，并应用于后续的章节生成中。' : 'Enter an author name, AI will analyze their past works, extract their writing style, and apply it to subsequent chapter generation.'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-4 p-6 bg-zinc-50 rounded-2xl border border-zinc-100">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">{t.authorStyle}</label>
+                      <div className="flex items-center gap-2">
+                        {showStyleInput && (
+                          <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2 duration-200">
+                            <input 
+                              value={styleInstruction}
+                              onChange={(e) => setStyleInstruction(e.target.value)}
+                              placeholder={t.language === 'zh' ? "输入分析重点 (可选)..." : "Enter focus (optional)..."}
+                              className="text-xs px-3 py-1.5 bg-white border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900/5 w-48"
+                            />
+                          </div>
+                        )}
+                        <button 
+                          onClick={() => {
+                            if (!showStyleInput) {
+                              setShowStyleInput(true);
+                            } else {
+                              handleAnalyzeStyle(styleInstruction);
+                              setStyleInstruction('');
+                              setShowStyleInput(false);
+                            }
+                          }}
+                          disabled={analyzingStyle || !selectedNovel.authorStyleName}
+                          className="px-4 py-2 bg-zinc-900 text-white rounded-lg text-xs font-bold hover:bg-zinc-800 transition-colors disabled:opacity-30 flex items-center gap-2"
+                        >
+                          {analyzingStyle ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
+                          {showStyleInput ? t.analyzeStyle : t.analyzeStyle}
+                        </button>
+                      </div>
+                    </div>
+                    <input 
+                      value={selectedNovel.authorStyleName || ''}
+                      onChange={(e) => updateNovel({ authorStyleName: e.target.value })}
+                      placeholder="e.g. 刘慈欣, 辰东, J.K. Rowling"
+                      className="w-full px-4 py-3 bg-white border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-900/5 transition-all text-sm"
+                    />
+                  </div>
+
+                  {selectedNovel.authorStylePrompt && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm font-bold text-zinc-900">
+                          <FileSearch className="w-4 h-4" /> {t.language === 'zh' ? '文风系统提示词' : 'Author Style System Prompt'}
+                        </div>
+                        <div className="flex bg-zinc-100 p-0.5 rounded-lg">
+                          <button 
+                            onClick={() => setIsEditingStylePrompt(true)}
+                            className={cn(
+                              "px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all",
+                              isEditingStylePrompt ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-400 hover:text-zinc-600"
+                            )}
+                          >
+                            {t.edit}
+                          </button>
+                          <button 
+                            onClick={() => setIsEditingStylePrompt(false)}
+                            className={cn(
+                              "px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all",
+                              !isEditingStylePrompt ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-400 hover:text-zinc-600"
+                            )}
+                          >
+                            {t.preview}
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {isEditingStylePrompt ? (
+                        <textarea
+                          value={selectedNovel.authorStylePrompt || ''}
+                          onChange={(e) => updateNovel({ authorStylePrompt: e.target.value })}
+                          className="w-full h-[400px] p-6 bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-900/5 transition-all text-sm font-mono resize-y"
+                          placeholder={t.language === 'zh' ? '输入或编辑文风系统提示词...' : 'Enter or edit author style system prompt...'}
+                        />
+                      ) : (
+                        <div className="min-h-[400px] p-6 bg-zinc-50 border border-zinc-200 rounded-xl prose prose-zinc prose-sm max-w-none shadow-sm">
+                          <ReactMarkdown>{selectedNovel.authorStylePrompt}</ReactMarkdown>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            {activeTab !== 'chapters' && activeTab !== 'platform' && activeTab !== 'authorStyle' && (
               <Card className="p-8 space-y-8">
                 {activeTab === 'outline' && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">

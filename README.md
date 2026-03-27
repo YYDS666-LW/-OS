@@ -28,19 +28,19 @@
 ### 1. 项目管理台 (Dashboard)
 清晰直观的项目管理界面，轻松管理您的所有创作项目。
 <p align="center">
-  <img src="screenshots/dashboard.png" alt="项目管理台" width="100%" style="border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
+  <img src="./screenshots/dashboard.png" alt="项目管理台" width="100%">
 </p>
 
 ### 2. 沉浸式创作工作区 (Workspace)
 集成了章节管理、核心编辑器与多维度设定库的强大工作区。支持面板自由拖拽缩放，内容自适应显示。
 <p align="center">
-  <img src="screenshots/workspace.png" alt="创作工作区" width="100%" style="border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
+  <img src="./screenshots/workspace.png" alt="创作工作区" width="100%">
 </p>
 
 ### 3. 全局配置与 AI 设置 (Configuration)
 灵活的全局设置，支持自定义 AI 写作提示词（Prompt）、模型选择以及语言切换。
 <p align="center">
-  <img src="screenshots/settings.png" alt="全局配置" width="100%" style="border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
+  <img src="./screenshots/settings.png" alt="全局配置" width="100%">
 </p>
 
 ## 🚀 快速开始 (Getting Started)
